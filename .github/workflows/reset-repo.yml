@@ -1,0 +1,38 @@
+
+name: Botón de Pánico - Limpieza de Pruebas
+on:
+  schedule:
+    - cron: '0 0 * * *' # Se ejecuta a la medianoche (UTC)
+  workflow_dispatch:      # Permite activarlo manualmente
+
+jobs:
+  limpieza:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout del Repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Importante para tener todo el historial de ramas
+
+      - name: Operación Limpieza
+        run: |
+          # 1. Configurar la identidad del bot
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 2. Sincronizar todas las ramas de la nube
+          git fetch origin
+          
+          # 3. Moverse a 'main-pruebas'. Si no existe localmente, la crea desde la nube
+          git checkout main-pruebas || git checkout -b main-pruebas origin/main-pruebas || git checkout -b main-pruebas
+          
+          # 4. RESET TOTAL: Convertir 'main-pruebas' en una copia exacta de 'main'
+          git reset --hard origin/main
+          
+          # 5. Borrar archivos y carpetas que no estén en el repositorio oficial (limpieza de basura)
+          git clean -fd
+          
+          # 6. Empujar los cambios a la fuerza para "planchar" la rama en GitHub
+          git push origin main-pruebas --force
